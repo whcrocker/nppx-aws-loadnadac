@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="INFO" monitorInterval="30" >
+    <Properties>
+        <Property name="logFilename" value="nppx" />
+    </Properties>
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="[%-5level] [%t] %date{yyyy-MM-dd HH:mm:ss.SSS} %logger - %msg%n" />
+        </Console>
+        <RollingFile name="nppxLog" fileName="/tmp/${logFilename}.log" filePattern="/tmp/${logFilename}-%d{MM-dd-yyyy}-%i.log">
+            <PatternLayout pattern="[%-5level] [%t] %date{yyyy-MM-dd HH:mm:ss.SSS} %logger - %msg%n" />
+            <Policies>
+                <SizeBasedTriggeringPolicy size="100 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Logger name="org.hibernate" level="warn" additivity="false">
+            <AppenderRef ref="console"/>
+            <AppenderRef ref="nppxLog"/>
+        </Logger>
+        <Logger name="com.cmmps.nppx.internal.hibernate.NppxInterceptor" level="info" additivity="false">
+            <AppenderRef ref="console"/>
+            <AppenderRef ref="nppxLog"/>
+        </Logger>
+        <Logger name="com.cmmps.nppx" level="debug" additivity="false">
+            <AppenderRef ref="console"/>
+            <AppenderRef ref="nppxLog"/>
+        </Logger>
+        <Root level="info" additivity="false">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="nppxLog"/>
+        </Root>
+    </Loggers>
+</Configuration>

@@ -1,0 +1,7 @@
+hibernate.connection.driver_class=com.mysql.cj.jdbc.Driver
+hibernate.connection.url=${aws:}/nppx/DB_URL
+hibernate.connection.username=${aws:}/nppx/DB_USER
+hibernate.connection.password=${aws:}/nppx/DB_USER_PASSWORD
+hibernate.hbm2ddl.auto=validate
+source.host.name=${env:}HOSTNAME
+source.host.pwd=${env:}PWD
