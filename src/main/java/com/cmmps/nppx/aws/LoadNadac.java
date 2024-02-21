@@ -1,5 +1,6 @@
 package com.cmmps.nppx.aws;
 
+import com.cmmps.nppx.aws.common.AwsApp;
 import com.cmmps.nppx.aws.common.AwsUtil;
 import com.cmmps.nppx.aws.common.exception.NppxAwsException;
 import com.cmmps.nppx.common.Util;
@@ -12,7 +13,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hibernate.Session;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 import java.io.BufferedReader;
@@ -22,36 +22,20 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
 
-public class LoadNadac {
+public class LoadNadac extends AwsApp {
     private static final Logger log = LogManager.getLogger(LoadNadac.class);
 
     private static final String FILE_KEY = "database/data/NADAC2022.csv";
-    private static final String BUCKET_NAME = "nppx";
     private static final int INITIAL_NDC_MAP_CAPACITY = 10000;
     private static final int COMMIT_BOUNDARY = 10000;
     private static final int SAVE_WARN_THRESHOLD = 11;
 
-    private Region region;
-
     public LoadNadac() throws NppxAwsException {
-        if (!AwsUtil.verifyEnvironment()) {
-            throw new NppxAwsException("AWS environment is not configured properly. Verify region and access key information is set.");
-        }
-
-        region = Region.of(System.getenv(AwsUtil.PROP_REGION));
-    }
-
-    public Region getRegion() {
-        return region;
+        super();
     }
 
     public static void main(String[] args) throws Exception {
         var loadNadac = new LoadNadac();
-
-        AwsUtil.assumeRole(loadNadac.getRegion());
-
-        // MUST be done before connecting to database. It sets system properties used by Hibernate
-        AwsUtil.configureHibernate(loadNadac.getRegion());
 
         log.info("Initializing NADAC Started......");
 
@@ -84,9 +68,9 @@ public class LoadNadac {
             final Session session = HibernateUtil.startSession();
 
             try {
-                GetObjectRequest req = GetObjectRequest.builder().key(FILE_KEY).bucket(BUCKET_NAME).build();
+                GetObjectRequest req = GetObjectRequest.builder().key(FILE_KEY).bucket(AwsApp.NPPX_S3_BUCKET_NAME).build();
 
-                var streamReader = new InputStreamReader(AwsUtil.getS3Client(region).getObjectAsBytes(req).asInputStream());
+                var streamReader = new InputStreamReader(AwsUtil.getS3Client(getRegion()).getObjectAsBytes(req).asInputStream());
                 csvFile = new BufferedReader(streamReader);
 
                 var csvFormat = CSVFormat.DEFAULT.builder().setHeader(header).setSkipHeaderRecord(true).build();
@@ -153,9 +137,10 @@ public class LoadNadac {
                             var committimestart = System.currentTimeMillis();
                             session.getTransaction().commit();
                             var committime = (System.currentTimeMillis() - committimestart)/1000;
+                            var curRuntime = ((System.currentTimeMillis() - startTime)/1000/60.0);
 
-                            log.info("Committed %d [%d] items in %d seconds."
-                                             .formatted(COMMIT_BOUNDARY, itemsSaved[0], committime));
+                            log.info("Committed %d [%d] items in %d seconds. Runtime: %.2f minutes."
+                                             .formatted(COMMIT_BOUNDARY, itemsSaved[0], committime, curRuntime));
 
                             session.beginTransaction();
                         }
